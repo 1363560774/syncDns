@@ -1,0 +1,12 @@
+server:
+  port: 8089 #项目启动端口
+dns:
+  access:
+    key:
+      id: assessld #assessld
+      secret: assessSecret #assessSecret
+properties:
+  status: ENABLE #过滤域名状态
+  domainName: yourDomainName #域名
+  types:
+    - A #过滤域名类型
