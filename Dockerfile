@@ -1,4 +1,7 @@
 FROM openjdk
+#指定build的镜像为东八区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 VOLUME /tmp
 COPY target/syncDns-0.0.1-SNAPSHOT.jar app.jar
 RUN bash -c "touch /demo.jar"
