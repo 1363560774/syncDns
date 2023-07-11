@@ -110,10 +110,10 @@ public class DnsServiceImpl implements DnsService {
             log.info("修改前的阿里云域名解析详情 " + v);
             v.setValue(publicIp);
             manualSynchronizationDns(v);
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String format = simpleDateFormat.format(new Date());
+            log.info(format + " I do myself per 10 minutes publicIp = " + publicIp);
         });
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String format = simpleDateFormat.format(new Date());
-        log.info(format + " I do myself per 10 minutes publicIp = " + publicIp);
     }
 
     /**

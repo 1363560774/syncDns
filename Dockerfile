@@ -1,4 +1,4 @@
-FROM java:17
+FROM openjdk
 VOLUME /tmp
 COPY target/syncDns-0.0.1-SNAPSHOT.jar app.jar
 RUN bash -c "touch /demo.jar"
