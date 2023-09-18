@@ -95,10 +95,16 @@ public class DnsServiceImpl implements DnsService {
     @Override
     public void syncDns() {
         String publicIp = loadPublicIp();
+        List<String> domainName = properties.getDomainName();
+        domainName.forEach(name -> {
+            oneSyncDns(name, publicIp);
+        });
+    }
+
+    private void oneSyncDns(String domainName, String publicIp) {
         Domain domain = loadDnsDescribeDomainRecords();
         List<DomainRecords> record = domain.getDomainRecords().get("Record");
         List<String> types = properties.getTypes();
-        String domainName = properties.getDomainName();
         String status = properties.getStatus();
         record.stream().filter(d ->
                 !d.getValue().equals(publicIp)

@@ -16,6 +16,6 @@ import java.util.List;
 public class Properties {
 
     private String status;
-    private String domainName;
+    private List<String> domainName;
     private List<String> types;
 }
