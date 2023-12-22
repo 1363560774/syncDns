@@ -85,11 +85,9 @@ public class DnsServiceImpl implements DnsService {
 
     @Override
     public String loadPublicIp() {
-        String url = "https://qifu-api.baidubce.com/ip/local/geo/v1/district";
+        String url = "https://www.ipplus360.com/getIP";
         String s = RequestUtil.doGetRequest(url, new HttpHeaders());
-        String[] split = s.split(",");
-        String s1 = Arrays.stream(split).filter(o -> o.contains("\"ip\"")).findFirst().orElse("");
-        return s1.replace("\"","").replace("ip", "").replace(":","");
+        return JSONObject.parseObject(s).get("data").toString();
     }
 
     @Override
