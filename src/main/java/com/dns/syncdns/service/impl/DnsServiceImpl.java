@@ -35,6 +35,9 @@ public class DnsServiceImpl implements DnsService {
     @Autowired
     private Properties properties;
 
+    //占存当前IP 不一致时修改阿里云配置
+    private static String IP;
+
     @Override
     public Domain loadDnsDescribeDomainRecords() {
         try {
@@ -93,9 +96,14 @@ public class DnsServiceImpl implements DnsService {
     @Override
     public void syncDns() {
         String publicIp = loadPublicIp();
+        if (!publicIp.equals(IP)) {
+            IP = publicIp;
+        } else {
+            return;
+        }
         List<String> domainName = properties.getDomainName();
         domainName.forEach(name -> {
-            oneSyncDns(name, publicIp);
+            oneSyncDns(name, IP);
         });
     }
 
