@@ -12,4 +12,6 @@ public interface DnsService {
     String loadPublicIp();
 
     void syncDns();
+
+    Boolean downloadCertificateDeployToService(Long certId);
 }

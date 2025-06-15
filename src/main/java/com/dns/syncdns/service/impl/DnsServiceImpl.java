@@ -1,6 +1,8 @@
 package com.dns.syncdns.service.impl;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.aliyun.cas20200407.models.GetUserCertificateDetailResponse;
+import com.aliyun.tea.TeaException;
 import com.aliyun.tea.utils.StringUtils;
 import com.aliyun.teaopenapi.Client;
 import com.aliyun.teaopenapi.models.Config;
@@ -10,16 +12,24 @@ import com.aliyun.teautil.Common;
 import com.aliyun.teautil.models.RuntimeOptions;
 import com.dns.syncdns.common.OptionEnum;
 import com.dns.syncdns.common.RequestUtil;
-import com.dns.syncdns.domain.AccessKey;
-import com.dns.syncdns.domain.Domain;
-import com.dns.syncdns.domain.DomainRecords;
+import com.dns.syncdns.domain.*;
 import com.dns.syncdns.domain.Properties;
 import com.dns.syncdns.service.DnsService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.channel.ChannelExec;
+import org.apache.sshd.client.channel.ClientChannelEvent;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.config.keys.FilePasswordProvider;
+import org.apache.sshd.common.keyprovider.FileKeyPairProvider;
+import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -34,6 +44,12 @@ public class DnsServiceImpl implements DnsService {
 
     @Autowired
     private Properties properties;
+
+    @Autowired
+    private RemoteServerProperties remoteServer;
+
+    @Autowired
+    private com.aliyun.cas20200407.Client casClient;
 
     //占存当前IP 不一致时修改阿里云配置
     private static String IP;
@@ -105,6 +121,84 @@ public class DnsServiceImpl implements DnsService {
         domainName.forEach(name -> {
             oneSyncDns(name, IP);
         });
+    }
+
+    @Override
+    public Boolean downloadCertificateDeployToService(Long certId) {
+        com.aliyun.cas20200407.models.GetUserCertificateDetailRequest getUserCertificateDetailRequest = new com.aliyun.cas20200407.models.GetUserCertificateDetailRequest()
+                .setCertId(certId);
+        com.aliyun.teautil.models.RuntimeOptions runtime = new com.aliyun.teautil.models.RuntimeOptions();
+        try {
+            // 复制代码运行请自行打印 API 的返回值
+            GetUserCertificateDetailResponse userCertificateDetailWithOptions = casClient.getUserCertificateDetailWithOptions(getUserCertificateDetailRequest, runtime);
+            String pem = userCertificateDetailWithOptions.getBody().getCert();
+            String key = userCertificateDetailWithOptions.getBody().getKey();
+            String common = userCertificateDetailWithOptions.getBody().getCommon();
+            //把 pem 和 key 写入到 resource/ca  目录下 temp.pem 和 temp.key
+            createClientSendCommand(pem, key, common);
+            log.info(userCertificateDetailWithOptions.body.toString());
+        } catch (Exception _error) {
+            TeaException error = new TeaException(_error.getMessage(), _error);
+            String message = Common.assertAsString(error.message);
+            log.error("error message: {}", message);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 将证书和私钥写入 resource/ca 目录下的 pem 和 key 文件中
+     *
+     * @param pem 证书内容
+     * @param key 私钥内容
+     */
+    private void createClientSendCommand(String pem, String key, String common) {
+        SshClient client = SshClient.setUpDefaultClient();
+        client.start();
+        try {
+            ClientSession session = client.connect(remoteServer.getUsername(), remoteServer.getHost(), remoteServer.getPort())
+                    .verify(5000).getSession();
+            // 1. 创建带密码的密钥提供器
+            FilePasswordProvider passwordProvider = (sessionContext, namedResource, i) -> remoteServer.getPassword();
+            // 2. 加载受密码保护的私钥
+            FileKeyPairProvider keyProvider = new FileKeyPairProvider(Paths.get(remoteServer.getRsa()));
+            keyProvider.setPasswordFinder(passwordProvider);
+            // 3. 添加密钥身份
+            session.addPublicKeyIdentity(keyProvider.loadKeys(session).iterator().next());
+            // 4. 执行认证
+            if (session.auth().verify(5000).isFailure()) {
+                log.error("认证失败！");
+                throw new RuntimeException("认证失败！");
+            }
+            log.info("带密码密钥认证成功！");
+            String remoteFilePath = remoteServer.getRemoteFilePath();
+            String commandKey = "echo -e \"" + key+ "\" > " + remoteFilePath+common + ".key";
+            String commandPem = "echo -e \"" + pem + "\" > " + remoteFilePath+common + ".pem";
+            executeCommand(session, commandKey);
+            executeCommand(session, commandPem);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            client.stop();
+        }
+    }
+
+    public void executeCommand(ClientSession session, String command) throws IOException {
+        try (ChannelExec execChannel = session.createExecChannel(command);
+             ByteArrayOutputStream output = new ByteArrayOutputStream();
+             ByteArrayOutputStream error = new ByteArrayOutputStream()) {
+            execChannel.setOut(output);
+            execChannel.setErr(error);
+            execChannel.open().verify();
+            // 等待命令执行完成（超时30秒）
+            execChannel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 30_000);
+            // 检查退出状态码
+            if (execChannel.getExitStatus() != 0) {
+                //错误日志是ByteArrayOutputStream 转 utf8 打印出来
+                System.out.println(new String(error.toByteArray(), StandardCharsets.UTF_8));
+                throw new IOException("Command failed: " + error);
+            }
+        }
     }
 
     private void oneSyncDns(String domainName, String publicIp) {

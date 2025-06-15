@@ -36,6 +36,7 @@ public class DnsController {
     //每10分钟执行一次
     @Scheduled(fixedDelay = 1000 * 60 * 10)
     private void myTasks() {
+        System.out.println("定时任务执行");
         dnsService.syncDns();
     }
 }
