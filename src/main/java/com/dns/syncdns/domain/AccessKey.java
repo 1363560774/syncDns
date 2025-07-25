@@ -15,4 +15,5 @@ public class AccessKey {
 
     private String id;
     private String secret;
+    private String regionId;
 }

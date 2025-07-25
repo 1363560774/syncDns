@@ -21,6 +21,12 @@ public class DnsController {
         return dnsService.loadDnsDescribeDomainRecords();
     }
 
+    //获取dns列表
+    @GetMapping("cas.list.do")
+    public Domain loadCasDescribeDomainRecords() {
+        return dnsService.loadCasDescribeDomainRecords();
+    }
+
     //手动同步dns
     @PostMapping("dns.manual.do")
     public void manualSynchronizationDns(DomainRecords domainRecords) {

@@ -13,6 +13,7 @@ class SyncDnsApplicationTests {
 
     @Test
     void contextLoads() {
+        dnsService.loadCasDescribeDomainRecords();
         Boolean b = dnsService.downloadCertificateDeployToService(18855519L);
         System.out.println(b);
     }

@@ -13,5 +13,7 @@ public interface DnsService {
 
     void syncDns();
 
+    Domain loadCasDescribeDomainRecords();
+
     Boolean downloadCertificateDeployToService(Long certId);
 }

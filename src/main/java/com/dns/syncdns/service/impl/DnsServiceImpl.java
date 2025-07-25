@@ -2,6 +2,7 @@ package com.dns.syncdns.service.impl;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.aliyun.cas20200407.models.GetUserCertificateDetailResponse;
+import com.aliyun.cas20200407.models.ListUserCertificateOrderResponse;
 import com.aliyun.tea.TeaException;
 import com.aliyun.tea.utils.StringUtils;
 import com.aliyun.teaopenapi.Client;
@@ -199,6 +200,35 @@ public class DnsServiceImpl implements DnsService {
                 throw new IOException("Command failed: " + error);
             }
         }
+    }
+
+    @Override
+    public Domain loadCasDescribeDomainRecords() {
+        com.aliyun.cas20200407.models.ListUserCertificateOrderRequest listUserCertificateOrderRequest = new com.aliyun.cas20200407.models.ListUserCertificateOrderRequest()
+                .setStatus("ISSUED")
+                .setOrderType("CERT");
+        com.aliyun.teautil.models.RuntimeOptions runtime = new com.aliyun.teautil.models.RuntimeOptions();
+        try {
+            // 复制代码运行请自行打印 API 的返回值
+            ListUserCertificateOrderResponse listUserCertificateOrderResponse = casClient.listUserCertificateOrderWithOptions(listUserCertificateOrderRequest, runtime);
+            System.out.println(com.aliyun.teautil.Common.toJSONString(com.aliyun.teautil.Common.toMap(listUserCertificateOrderResponse)));
+        } catch (TeaException error) {
+            // 此处仅做打印展示，请谨慎对待异常处理，在工程项目中切勿直接忽略异常。
+            // 错误 message
+            System.out.println(error.getMessage());
+            // 诊断地址
+            System.out.println(error.getData().get("Recommend"));
+            com.aliyun.teautil.Common.assertAsString(error.message);
+        } catch (Exception _error) {
+            TeaException error = new TeaException(_error.getMessage(), _error);
+            // 此处仅做打印展示，请谨慎对待异常处理，在工程项目中切勿直接忽略异常。
+            // 错误 message
+            System.out.println(error.getMessage());
+            // 诊断地址
+            System.out.println(error.getData().get("Recommend"));
+            com.aliyun.teautil.Common.assertAsString(error.message);
+        }
+        return null;
     }
 
     private void oneSyncDns(String domainName, String publicIp) {
