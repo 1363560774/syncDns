@@ -21,7 +21,7 @@ public class DnsController {
         return dnsService.loadDnsDescribeDomainRecords();
     }
 
-    //获取dns列表
+    //获取ca证书列表
     @GetMapping("cas.list.do")
     public Domain loadCasDescribeDomainRecords() {
         return dnsService.loadCasDescribeDomainRecords();
