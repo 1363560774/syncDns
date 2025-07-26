@@ -12,3 +12,10 @@ properties:
     - yourDomainName
   types:
     - A #过滤域名类型
+remote:
+  host: yourHost
+  username: yourUsername
+  password: yourPassword
+  port: 22
+  rsa: yourRsaFilePath
+  remoteFilePath: yourRemoteFilePath
